@@ -37,8 +37,8 @@ void loop() {
       drive(-255, -255); // Move backward
     } else if (receivedChar == 'D') {
       drive(255, -255); // Turn right
-    } else {
-      drive(0, 0); // Stop for any other command
+    } else if (receivedChar == 'P') {
+      drive(0, 0); // Stop
     }
   }
 }

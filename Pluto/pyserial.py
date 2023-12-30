@@ -7,7 +7,7 @@ class ArduinoController:
         self.root.title("Arduino Controller")
 
         # Set the serial port and baud rate
-        self.port = 'COM3'  # Replace 'COMx' with the actual serial port of your Arduino
+        self.port = '/dev/ttyUSB0'  # Replace 'COMx' with the actual serial port of your Arduino
         self.baud_rate = 9600
 
         # Create a label to display the messages
@@ -33,31 +33,36 @@ class ArduinoController:
         self.root.bind("<KeyPress>", self.key_press)
         self.root.bind("<KeyRelease>", self.key_release)
 
+        # Stop button
+        self.stop_button = tk.Button(self.root, text="Stop Motors", command=self.stop_motors)
+        self.stop_button.pack()
+
         # Periodically update the label with current messages
         self.root.after(100, self.update_message_label)
 
     def key_press(self, event):
         key = event.char.upper()
-        if key in self.button_states:
+        if key in self.button_states and not self.button_states[key]:
             self.button_states[key] = True
-            self.current_key = key
-            self.send_continuous_signal()
+            self.send_signal(key)
 
     def key_release(self, event):
         key = event.char.upper()
-        if key == self.current_key:
+        if key in self.button_states and self.button_states[key]:
             self.button_states[key] = False
-            self.current_key = None
+            self.send_signal('STOP')
 
-    def send_continuous_signal(self):
-        if self.current_key is not None:
-            self.ser.write(self.current_key.encode())
-            self.root.after(100, self.send_continuous_signal)
+    def send_signal(self, command):
+        self.ser.write(command.encode())
 
     def update_message_label(self):
         current_messages = [cmd for cmd, state in self.button_states.items() if state]
         self.message_label.config(text=f"Messages: {', '.join(current_messages)}")
         self.root.after(100, self.update_message_label)
+
+    def stop_motors(self):
+        self.button_states = {'W': False, 'A': False, 'S': False, 'D': False}
+        self.send_signal('STOP')
 
 if __name__ == "__main__":
     root = tk.Tk()
