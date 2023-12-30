@@ -1,4 +1,3 @@
-import tkinter as tk
 import pygame
 import serial
 import time
@@ -97,12 +96,9 @@ class XboxControllerReader:
             self.ser.write(command.encode())
 
 class ArduinoController:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Arduino Controller")
-
+    def __init__(self):
         # Set the serial port and baud rate
-        self.port = '/dev/ttyACM1'  # Replace 'COMx' with the actual serial port of your Arduino
+        self.port = '/dev/ttyACM0'  # Replace 'COMx' with the actual serial port of your Arduino
         self.baud_rate = 9600
 
         # Open the serial port
@@ -110,8 +106,6 @@ class ArduinoController:
             self.ser = serial.Serial(self.port, self.baud_rate, timeout=1)
         except serial.SerialException as e:
             print(f"Error: {e}")
-            # Uncomment the next line if you want to exit the script when there is an error
-            # self.root.destroy()
             return
 
         # Initialize the Xbox controller reader
@@ -125,8 +119,11 @@ class ArduinoController:
         self.controller_thread.start()
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    controller = ArduinoController(root)
-    if root._windowingsystem == 'win32':
-        root.protocol("WM_DELETE_WINDOW", root.iconify)
-    root.mainloop()
+    controller = ArduinoController()
+
+    # Keep the main thread (which would run the GUI) alive
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Exiting...")
