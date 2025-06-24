@@ -1,50 +1,59 @@
 import cv2
 
-# USB webcam device (usually 0)
 camera_index = 0
 
-# GStreamer pipeline to stream over RTSP via UDP to a local port
-# You can change host=0.0.0.0 to a specific IP if needed
 gst_str = (
     'appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast '
     '! rtph264pay config-interval=1 pt=96 ! udpsink host=224.1.1.1 port=5000 auto-multicast=true'
 )
 
-# Open the webcam
+print("[DEBUG] Opening webcam...")
 cap = cv2.VideoCapture(camera_index)
 
 if not cap.isOpened():
-    print("Error: Could not open webcam.")
-    exit()
+    print("[ERROR] Could not open webcam.")
+    exit(1)
+else:
+    print("[DEBUG] Webcam opened successfully.")
 
-# Start GStreamer pipeline as output
+frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+fps = cap.get(cv2.CAP_PROP_FPS)
+fps = fps if fps > 0 else 30  # fallback to 30 if FPS is 0 or invalid
+
+print(f"[DEBUG] Frame width: {frame_width}, Frame height: {frame_height}, FPS: {fps}")
+
+print("[DEBUG] Initializing GStreamer VideoWriter...")
 out = cv2.VideoWriter(
     gst_str,
     cv2.CAP_GSTREAMER,
-    0,  # FourCC not needed for GStreamer
-    30.0,  # Frame rate
-    (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    0,
+    fps,
+    (frame_width, frame_height)
 )
 
 if not out.isOpened():
-    print("Error: Could not open output stream.")
-    exit()
-
-print("Streaming... Press CTRL+C to stop.")
+    print("[ERROR] Could not open video writer.")
+    cap.release()
+    exit(1)
+else:
+    print("[DEBUG] Video writer opened successfully. Streaming started.")
 
 try:
     while True:
         ret, frame = cap.read()
         if not ret:
-            print("Error: Failed to grab frame.")
+            print("[ERROR] Failed to grab frame.")
             break
 
         out.write(frame)
+        print("[DEBUG] Frame written to stream.")
 
 except KeyboardInterrupt:
-    print("Streaming stopped.")
+    print("\n[INFO] Streaming stopped by user.")
 
 finally:
     cap.release()
     out.release()
     cv2.destroyAllWindows()
+    print("[DEBUG] Released all resources. Exiting.")
