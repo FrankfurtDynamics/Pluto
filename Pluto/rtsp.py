@@ -1,63 +1,28 @@
-import cv2
+import gi
+gi.require_version('Gst', '1.0')
+gi.require_version('GstRtspServer', '1.0')
+from gi.repository import Gst, GstRtspServer, GObject
 
-# Use device path for the webcam
-device_path = '/dev/video0'
+Gst.init(None)
 
-# Replace with the IP address of the VLC machine
-vlc_ip = '192.168.178.89'  
+class RTSPServer:
+    def __init__(self):
+        self.server = GstRtspServer.RTSPServer()
+        self.factory = GstRtspServer.RTSPMediaFactory()
 
-gst_str = (
-    'appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast '
-    '! rtph264pay config-interval=1 pt=96 ! udpsink host={} port=5000'.format(vlc_ip)
-)
+        # Define GStreamer pipeline to read from /dev/video0 and encode to H264
+        self.factory.set_launch(
+            '( v4l2src device=/dev/video0 ! videoconvert ! video/x-raw,format=I420 '
+            '! x264enc speed-preset=ultrafast tune=zerolatency bitrate=500 '
+            '! rtph264pay name=pay0 pt=96 )'
+        )
+        self.factory.set_shared(True)
+        self.server.get_mount_points().add_factory("/test", self.factory)
 
-print("[DEBUG] Opening webcam...")
-cap = cv2.VideoCapture(device_path)
+        self.server.attach(None)
+        print("RTSP Server is live at rtsp://<your-pi-ip>:8554/test")
 
-if not cap.isOpened():
-    print("[ERROR] Could not open webcam.")
-    exit(1)
-else:
-    print("[DEBUG] Webcam opened successfully.")
-
-frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-fps = cap.get(cv2.CAP_PROP_FPS)
-fps = fps if fps > 0 else 30
-
-print(f"[DEBUG] Frame width: {frame_width}, Frame height: {frame_height}, FPS: {fps}")
-
-print("[DEBUG] Initializing GStreamer VideoWriter...")
-out = cv2.VideoWriter(
-    gst_str,
-    cv2.CAP_GSTREAMER,
-    0,
-    fps,
-    (frame_width, frame_height)
-)
-
-if not out.isOpened():
-    print("[ERROR] Could not open video writer.")
-    cap.release()
-    exit(1)
-else:
-    print("[DEBUG] Video writer opened successfully. Streaming started.")
-
-try:
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("[ERROR] Failed to grab frame.")
-            break
-
-        out.write(frame)
-        print("[DEBUG] Frame written to stream.")
-
-except KeyboardInterrupt:
-    print("\n[INFO] Streaming stopped by user.")
-
-finally:
-    cap.release()
-    out.release()
-    cv2.destroyAllWindows()
-    print("[DEBUG] Released all resources. Exiting.")
+if __name__ == '__main__':
+    server = RTSPServer()
+    loop = GObject.MainLoop()
+    loop.run()
