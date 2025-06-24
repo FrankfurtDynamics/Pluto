@@ -8,7 +8,7 @@ gst_str = (
 )
 
 print("[DEBUG] Opening webcam...")
-cap = cv2.VideoCapture(camera_index)
+cap = cv2.VideoCapture('/dev/video0')
 
 if not cap.isOpened():
     print("[ERROR] Could not open webcam.")
