@@ -189,9 +189,10 @@ def run_ws_in_thread():
 
 # ─── Static HTTP Server (serves index.html) ───────────────────────────────────
 def run_http_server(port=8080):
-    handler = http.server.SimpleHTTPRequestHandler
-    # Serve files from the same directory as this script
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    webconfig_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "webconfig")
+    handler = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(
+        *args, directory=webconfig_dir, **kwargs
+    )
     with socketserver.TCPServer(("", port), handler) as httpd:
         print(f"[HTTP] Serving UI at http://0.0.0.0:{port}")
         httpd.serve_forever()
