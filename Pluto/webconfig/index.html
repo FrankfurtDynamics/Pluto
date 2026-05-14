@@ -105,13 +105,14 @@
   const liveBadge = document.getElementById('live-badge');
 
   function startCamera() {
+    camImg.onerror = null; // prevent stale handler from previous call
     camImg.src = camUrl;
-    camImg.onload = () => {
-      camImg.style.display = 'block';
-      camPlaceholder.style.display = 'none';
-      liveBadge.classList.add('visible');
-    };
+    // Show the image immediately — MJPEG streams never fire onload
+    camImg.style.display = 'block';
+    camPlaceholder.style.display = 'none';
+    liveBadge.classList.add('visible');
     camImg.onerror = () => {
+      camImg.onerror = null;
       camImg.style.display = 'none';
       camPlaceholder.style.display = 'flex';
       liveBadge.classList.remove('visible');
@@ -213,8 +214,17 @@
   // ── Tilt slider ───────────────────────────────────────────────────────────
   const tiltSlider = document.getElementById('slider-tilt');
   const tiltVal = document.getElementById('tilt-val');
+
+  // Restore saved value without sending it on load
+  const savedTilt = localStorage.getItem('tilt');
+  if (savedTilt !== null) {
+    tiltSlider.value = savedTilt;
+    tiltVal.textContent = savedTilt;
+  }
+
   tiltSlider.addEventListener('input', () => {
     tiltVal.textContent = tiltSlider.value;
+    localStorage.setItem('tilt', tiltSlider.value);
     send('T' + tiltSlider.value);
   });
 
