@@ -160,12 +160,22 @@ async def ws_handler(websocket):
         async for raw in websocket:
             try:
                 msg = json.loads(raw)
-                cmd = msg.get('command', '').upper()
-                # Whitelist valid commands
-                if cmd in ('W', 'A', 'S', 'D', 'WA', 'WD', 'SA', 'SD', 'P', ''):
-                    if cmd:
-                        send_command(ser_global, cmd)
-                    await websocket.send(json.dumps({'ack': cmd}))
+                cmd = msg.get('command', '')
+                upper = cmd.upper()
+                # Movement commands
+                if upper in ('W', 'A', 'S', 'D', 'WA', 'WD', 'SA', 'SD', 'P', ''):
+                    if upper:
+                        send_command(ser_global, upper)
+                    await websocket.send(json.dumps({'ack': upper}))
+                # Lights toggle: L
+                elif upper == 'L':
+                    send_command(ser_global, 'L')
+                    await websocket.send(json.dumps({'ack': 'L'}))
+                # Speed: V0–V255
+                elif upper.startswith('T') and upper[1:].isdigit():
+                    speed = max(0, min(255, int(upper[1:])))
+                    send_command(ser_global, f'V{speed}')
+                    await websocket.send(json.dumps({'ack': f'V{speed}'}))
                 else:
                     await websocket.send(json.dumps({'error': 'Unknown command'}))
             except json.JSONDecodeError:
