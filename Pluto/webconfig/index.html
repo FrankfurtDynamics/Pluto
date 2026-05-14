@@ -4,185 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Robot Controller</title>
-<style>
-  :root {
-    --bg: #0d0d0f;
-    --surface: #18181c;
-    --surface2: #222228;
-    --border: rgba(255,255,255,0.07);
-    --accent: #00e5a0;
-    --accent-dim: rgba(0,229,160,0.12);
-    --accent-mid: rgba(0,229,160,0.35);
-    --danger: #ff4d4d;
-    --danger-dim: rgba(255,77,77,0.12);
-    --text: #f0f0f2;
-    --muted: #72727a;
-    --font: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-    gap: 16px;
-  }
-
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    max-width: 900px;
-  }
-
-  .brand { display: flex; align-items: center; gap: 10px; }
-  .logo {
-    width: 30px; height: 30px;
-    border: 1.5px solid var(--accent);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .logo svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 1.8; }
-  h1 { font-size: 13px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
-
-  .status-bar {
-    display: flex; align-items: center; gap: 7px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 5px 12px;
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.06em;
-  }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); transition: background 0.3s; }
-  .dot.connected { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
-  .dot.error { background: var(--danger); }
-
-  .main {
-    display: grid;
-    grid-template-columns: 1fr 220px;
-    gap: 14px;
-    width: 100%;
-    max-width: 900px;
-  }
-
-  .video-panel {
-    background: #000;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    aspect-ratio: 4/3;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .video-panel img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: none;
-  }
-  .video-placeholder {
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
-    position: absolute;
-  }
-  .video-placeholder svg { width: 28px; height: 28px; stroke: var(--muted); fill: none; stroke-width: 1.5; }
-  .video-placeholder span { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
-  .cam-badge {
-    position: absolute; top: 10px; left: 10px;
-    font-size: 9px; color: var(--accent); letter-spacing: 0.1em; opacity: 0.8;
-  }
-  .live-badge {
-    position: absolute; top: 10px; right: 10px;
-    display: none; align-items: center; gap: 5px;
-    font-size: 9px; color: var(--danger); letter-spacing: 0.08em;
-  }
-  .live-badge.visible { display: flex; }
-  .rec-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--danger); }
-
-  .right-col { display: flex; flex-direction: column; gap: 12px; }
-
-  .dpad-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
-  }
-  .label { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
-
-  .dpad {
-    display: grid;
-    grid-template-columns: repeat(3, 58px);
-    grid-template-rows: repeat(3, 58px);
-    gap: 5px;
-  }
-  .dpad-btn {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.1s, border-color 0.1s, transform 0.08s;
-    user-select: none; -webkit-user-select: none; touch-action: none;
-  }
-  .dpad-btn:hover { background: var(--accent-dim); border-color: var(--accent-mid); }
-  .dpad-btn.active { background: var(--accent-dim); border-color: var(--accent); transform: scale(0.93); }
-  .dpad-btn svg { width: 20px; height: 20px; stroke: var(--text); fill: none; stroke-width: 2; pointer-events: none; }
-  .dpad-btn.active svg { stroke: var(--accent); }
-  .dpad-btn.center-cell { background: var(--bg); border-color: transparent; cursor: default; }
-
-  .stop-btn {
-    background: var(--danger-dim);
-    border: 1px solid rgba(255,77,77,0.3);
-    border-radius: 9px;
-    color: var(--danger);
-    font-family: var(--font);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 12px;
-    cursor: pointer;
-    width: 100%;
-    transition: background 0.1s, border-color 0.1s, transform 0.08s;
-  }
-  .stop-btn:hover { background: rgba(255,77,77,0.22); border-color: var(--danger); }
-  .stop-btn.active { transform: scale(0.97); }
-
-  .hint { font-size: 9px; color: var(--muted); letter-spacing: 0.07em; text-align: center; line-height: 1.9; }
-  .kbd {
-    display: inline-block; background: var(--surface2);
-    border: 1px solid var(--border); border-radius: 3px;
-    padding: 1px 4px; font-size: 9px;
-  }
-
-  .log-panel {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; overflow: hidden;
-    width: 100%; max-width: 900px;
-  }
-  .log-header {
-    padding: 8px 14px; font-size: 9px; letter-spacing: 0.15em;
-    text-transform: uppercase; color: var(--muted);
-    border-bottom: 1px solid var(--border);
-    display: flex; justify-content: space-between;
-  }
-  .log-body {
-    padding: 8px 14px; height: 80px; overflow-y: auto;
-    display: flex; flex-direction: column-reverse; gap: 3px;
-  }
-  .log-entry { font-size: 10px; color: var(--muted); display: flex; gap: 8px; }
-  .log-entry .cmd { color: var(--accent); font-weight: 600; min-width: 28px; }
-  .log-entry .ts { color: var(--surface2); }
-</style>
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
@@ -200,42 +22,63 @@
 </header>
 
 <div class="main">
-  <div class="video-panel">
-    <img id="cam-img" alt="Camera feed" />
-    <div class="video-placeholder" id="cam-placeholder">
-      <svg viewBox="0 0 24 24"><path d="M15 10l4.553-2.277A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-      <span id="cam-status">Connecting to camera…</span>
+  <div class="left-col">
+    <div class="video-panel">
+      <img id="cam-img" alt="Camera feed" />
+      <div class="video-placeholder" id="cam-placeholder">
+        <svg viewBox="0 0 24 24"><path d="M15 10l4.553-2.277A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+        <span id="cam-status">Connecting to camera…</span>
+      </div>
+      <div class="cam-badge">CAM 01 · 640×480</div>
+      <div class="live-badge" id="live-badge"><div class="rec-dot"></div>LIVE</div>
     </div>
-    <div class="cam-badge">CAM 01 · 640×480</div>
-    <div class="live-badge" id="live-badge"><div class="rec-dot"></div>LIVE</div>
+    <div class="cam-actions">
+      <button class="cam-btn" data-cmd="L">
+        <svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 017 7c0 2.5-1.3 4.7-3.3 6L15 17H9l-.7-2C6.3 13.7 5 11.5 5 9a7 7 0 017-7z"/></svg>
+        Lights
+      </button>
+      <button class="cam-btn" data-cmd="H">
+        <svg viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg>
+        Horn
+      </button>
+    </div>
   </div>
 
   <div class="right-col">
     <div class="dpad-wrap">
       <div class="label">Direction</div>
-      <div class="dpad">
-        <div></div>
-        <div class="dpad-btn" id="btn-W" data-cmd="W">
-          <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+      <div class="dpad-row">
+        <div class="dpad-inner">
+          <div class="dpad">
+            <div></div>
+            <div class="dpad-btn" id="btn-W" data-cmd="W">
+              <svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>
+            </div>
+            <div></div>
+            <div class="dpad-btn" id="btn-A" data-cmd="A">
+              <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            </div>
+            <div class="dpad-btn center-cell"></div>
+            <div class="dpad-btn" id="btn-D" data-cmd="D">
+              <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+            </div>
+            <div></div>
+            <div class="dpad-btn" id="btn-S" data-cmd="S">
+              <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div></div>
+          </div>
+          <button class="stop-btn" id="btn-P">⏹ Stop</button>
+          <div class="hint">
+            <span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span> to move<br>
+            <span class="kbd">Space</span> to stop
+          </div>
         </div>
-        <div></div>
-        <div class="dpad-btn" id="btn-A" data-cmd="A">
-          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        <div class="tilt-wrap">
+          <span class="label">Speed</span>
+          <span class="tilt-val" id="tilt-val">50</span>
+          <input type="range" class="tilt-slider" id="slider-tilt" min="0" max="255" value="150" />
         </div>
-        <div class="dpad-btn center-cell"></div>
-        <div class="dpad-btn" id="btn-D" data-cmd="D">
-          <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
-        </div>
-        <div></div>
-        <div class="dpad-btn" id="btn-S" data-cmd="S">
-          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div></div>
-      </div>
-      <button class="stop-btn" id="btn-P">⏹ Stop</button>
-      <div class="hint">
-        <span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span> to move<br>
-        <span class="kbd">Space</span> to stop
       </div>
     </div>
   </div>
@@ -360,6 +203,19 @@
     const k = e.key.toLowerCase();
     if (k === ' ') { stopBtn.classList.remove('active'); return; }
     const m = keyMap[k]; if (m) stopSending(m);
+  });
+
+  // ── Camera action buttons ─────────────────────────────────────────────────
+  document.querySelectorAll('.cam-btn').forEach(btn => {
+    btn.addEventListener('click', () => send(btn.dataset.cmd));
+  });
+
+  // ── Tilt slider ───────────────────────────────────────────────────────────
+  const tiltSlider = document.getElementById('slider-tilt');
+  const tiltVal = document.getElementById('tilt-val');
+  tiltSlider.addEventListener('input', () => {
+    tiltVal.textContent = tiltSlider.value;
+    send('T' + tiltSlider.value);
   });
 
   connect();
