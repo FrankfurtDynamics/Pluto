@@ -8,6 +8,8 @@ import json
 import http.server
 import socketserver
 import os
+import subprocess
+import socket
 
 # ─── Shared serial lock ──────────────────────────────────────────────────────
 serial_lock = threading.Lock()
@@ -88,6 +90,66 @@ def send_command(ser, command):
             print(f"[ERR] Serial write failed: {e}")
 
 
+# ─── MJPEG Camera Stream ─────────────────────────────────────────────────────
+class MjpegHandler(http.server.BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        pass  # silence access logs
+
+    def do_GET(self):
+        if self.path == '/stream':
+            self.send_response(200)
+            self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=frame')
+            self.send_header('Cache-Control', 'no-cache')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            cmd = [
+                'libcamera-vid',
+                '-t', '0',
+                '--codec', 'mjpeg',
+                '--width', '640',
+                '--height', '480',
+                '--framerate', '15',
+                '-o', '-',
+                '--nopreview',
+            ]
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            buf = b''
+            try:
+                while True:
+                    chunk = proc.stdout.read(4096)
+                    if not chunk:
+                        break
+                    buf += chunk
+                    # find complete JPEG frames
+                    while True:
+                        start = buf.find(b'\xff\xd8')
+                        end = buf.find(b'\xff\xd9')
+                        if start == -1 or end == -1 or end < start:
+                            break
+                        frame = buf[start:end + 2]
+                        buf = buf[end + 2:]
+                        try:
+                            self.wfile.write(
+                                b'--frame\r\n'
+                                b'Content-Type: image/jpeg\r\n\r\n' +
+                                frame + b'\r\n'
+                            )
+                            self.wfile.flush()
+                        except (BrokenPipeError, ConnectionResetError):
+                            break
+            finally:
+                proc.terminate()
+        else:
+            self.send_error(404)
+
+
+def run_camera_server(port=8090):
+    server = socketserver.ThreadingTCPServer(('', port), MjpegHandler)
+    server.daemon_threads = True
+    print(f"[CAM] MJPEG stream at http://0.0.0.0:{port}/stream")
+    server.serve_forever()
+
+
 # ─── WebSocket Server ─────────────────────────────────────────────────────────
 connected_clients = set()
 
@@ -164,6 +226,10 @@ class ArduinoController:
         # WebSocket thread
         ws_thread = threading.Thread(target=run_ws_in_thread, daemon=True)
         ws_thread.start()
+
+        # Camera stream thread
+        cam_thread = threading.Thread(target=lambda: run_camera_server(8090), daemon=True)
+        cam_thread.start()
 
         # HTTP thread
         http_thread = threading.Thread(target=lambda: run_http_server(8080), daemon=True)
