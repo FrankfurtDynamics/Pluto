@@ -6,39 +6,50 @@ const int BIN1_PIN = 7;
 const int BIN2_PIN = 8;
 const int BPWM_PIN = 6;
 
+// Lights pin
+const int LIGHTS_PIN = 10;
+
 // Parameters
-const int deadzone = 50;  // Anything between -20 and 20 is stop
+const int deadzone = 50;
+int motorSpeed = 255;   // Default full speed, updated by 'V' command
+bool lightsOn = false;
 
 void setup() {
-  // Configure pins
   pinMode(AIN1_PIN, OUTPUT);
   pinMode(AIN2_PIN, OUTPUT);
   pinMode(APWM_PIN, OUTPUT);
   pinMode(BIN1_PIN, OUTPUT);
   pinMode(BIN2_PIN, OUTPUT);
   pinMode(BPWM_PIN, OUTPUT);
+  pinMode(LIGHTS_PIN, OUTPUT);
+  digitalWrite(LIGHTS_PIN, LOW);
 
-  // Start serial communication
   Serial.begin(9600);
 }
 
 void loop() {
-  // Check if data is available to read
   if (Serial.available() > 0) {
-    // Read the incoming character
     char receivedChar = Serial.read();
 
-    // Perform actions based on the received character
     if (receivedChar == 'W') {
-      drive(255, 255); // Move forward
+      drive(motorSpeed, motorSpeed);
     } else if (receivedChar == 'A') {
-      drive(-255, 255); // Turn left
+      drive(-motorSpeed, motorSpeed);
     } else if (receivedChar == 'S') {
-      drive(-255, -255); // Move backward
+      drive(-motorSpeed, -motorSpeed);
     } else if (receivedChar == 'D') {
-      drive(255, -255); // Turn right
+      drive(motorSpeed, -motorSpeed);
     } else if (receivedChar == 'P') {
-      drive(0, 0); // Stop
+      drive(0, 0);
+    } else if (receivedChar == 'L') {
+      lightsOn = !lightsOn;
+      digitalWrite(LIGHTS_PIN, lightsOn ? HIGH : LOW);
+    } else if (receivedChar == 'V') {
+      // Read the numeric value that follows, e.g. "V180"
+      String numStr = Serial.readStringUntil('\n');
+      numStr.trim();
+      int val = numStr.toInt();
+      motorSpeed = constrain(val, 0, 255);
     }
   }
 }

@@ -81,10 +81,11 @@ def joystick_to_command(x_value, y_value, deadzone=0.1):
 
 
 def send_command(ser, command):
-    """Thread-safe serial write."""
+    """Thread-safe serial write. V commands include a trailing newline."""
     with serial_lock:
         try:
-            ser.write(command.encode())
+            payload = command + ('\n' if command.startswith('V') else '')
+            ser.write(payload.encode())
             print(f"[CMD] {command}")
         except serial.SerialException as e:
             print(f"[ERR] Serial write failed: {e}")
