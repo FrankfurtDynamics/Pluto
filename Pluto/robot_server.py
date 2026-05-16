@@ -112,6 +112,7 @@ class MjpegHandler(http.server.BaseHTTPRequestHandler):
                 '--framerate', '15',
                 '-o', '-',
                 '--nopreview',
+                '--vflip',
             ]
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
             buf = b''
