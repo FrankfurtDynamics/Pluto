@@ -105,14 +105,13 @@
   const liveBadge = document.getElementById('live-badge');
 
   function startCamera() {
-    camImg.onerror = null; // prevent stale handler from previous call
     camImg.src = camUrl;
-    // Show the image immediately — MJPEG streams never fire onload
-    camImg.style.display = 'block';
-    camPlaceholder.style.display = 'none';
-    liveBadge.classList.add('visible');
+    camImg.onload = () => {
+      camImg.style.display = 'block';
+      camPlaceholder.style.display = 'none';
+      liveBadge.classList.add('visible');
+    };
     camImg.onerror = () => {
-      camImg.onerror = null;
       camImg.style.display = 'none';
       camPlaceholder.style.display = 'flex';
       liveBadge.classList.remove('visible');
@@ -207,7 +206,18 @@
   });
 
   // ── Camera action buttons ─────────────────────────────────────────────────
-  document.querySelectorAll('.cam-btn').forEach(btn => {
+  const lightsBtn = document.querySelector('.cam-btn[data-cmd="L"]');
+  let lightsOn = localStorage.getItem('lights') === 'on';
+  if (lightsOn) lightsBtn.classList.add('active');
+
+  lightsBtn.addEventListener('click', () => {
+    lightsOn = !lightsOn;
+    lightsBtn.classList.toggle('active', lightsOn);
+    localStorage.setItem('lights', lightsOn ? 'on' : 'off');
+    send('L');
+  });
+
+  document.querySelectorAll('.cam-btn:not([data-cmd="L"])').forEach(btn => {
     btn.addEventListener('click', () => send(btn.dataset.cmd));
   });
 

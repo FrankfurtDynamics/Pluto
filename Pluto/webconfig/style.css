@@ -69,6 +69,7 @@ h1 { font-size: 13px; font-weight: 500; letter-spacing: 0.14em; text-transform: 
 
 .video-panel {
   background: #000;
+  transform: rotate(180deg);
   border: 1px solid var(--border);
   border-radius: 12px;
   aspect-ratio: 4/3;
