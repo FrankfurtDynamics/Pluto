@@ -49,6 +49,13 @@ def start():
     _lidar.connect(port=LIDAR_PORT, baudrate=LIDAR_BAUDRATE, timeout=3)
     if _lidar.lidar_serial._serial is None:
         raise RuntimeError(f"[LIDAR] Failed to open serial port {LIDAR_PORT} — check permissions (sudo usermod -aG dialout $USER)")
+    # Reset to clear any stale state / sync mismatch
+    try:
+        _lidar.stop()
+        _lidar.reset()
+    except Exception:
+        pass
+    time.sleep(1)
     info = _lidar.get_info()
     health = _lidar.get_health()
     print(f"[LIDAR] Info: {info}")
