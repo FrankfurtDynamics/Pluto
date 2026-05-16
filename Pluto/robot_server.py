@@ -4,6 +4,7 @@ import time
 import threading
 import asyncio
 import websockets
+import websockets.legacy.server
 import json
 import http.server
 import socketserver
@@ -193,7 +194,7 @@ async def ws_handler(websocket):
 
 
 async def start_ws_server(host='0.0.0.0', port=8765):
-    async with websockets.serve(ws_handler, host, port):
+    async with websockets.legacy.server.serve(ws_handler, host, port):
         print(f"[WS] WebSocket server listening on ws://{host}:{port}")
         await asyncio.Future()  # run forever
 
@@ -215,7 +216,7 @@ async def lidar_ws_handler(websocket):
 
 
 async def start_lidar_ws_server(host='0.0.0.0', port=8766):
-    async with websockets.serve(lidar_ws_handler, host, port):
+    async with websockets.legacy.server.serve(lidar_ws_handler, host, port):
         print(f"[LIDAR WS] Listening on ws://{host}:{port}")
         await asyncio.Future()
 
