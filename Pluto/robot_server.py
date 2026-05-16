@@ -113,6 +113,7 @@ class MjpegHandler(http.server.BaseHTTPRequestHandler):
                 '-o', '-',
                 '--nopreview',
                 '--vflip',
+                '--hflip',
             ]
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
             buf = b''
@@ -146,6 +147,7 @@ class MjpegHandler(http.server.BaseHTTPRequestHandler):
 
 
 def run_camera_server(port=8090):
+    socketserver.ThreadingTCPServer.allow_reuse_address = True
     server = socketserver.ThreadingTCPServer(('', port), MjpegHandler)
     server.daemon_threads = True
     print(f"[CAM] MJPEG stream at http://0.0.0.0:{port}/stream")
@@ -205,6 +207,7 @@ def run_http_server(port=8080):
     handler = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(
         *args, directory=webconfig_dir, **kwargs
     )
+    socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", port), handler) as httpd:
         print(f"[HTTP] Serving UI at http://0.0.0.0:{port}")
         httpd.serve_forever()
