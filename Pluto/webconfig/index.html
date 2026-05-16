@@ -92,6 +92,14 @@
   <div class="log-body" id="log-body"></div>
 </div>
 
+<div class="lidar-panel">
+  <div class="log-header">
+    <span>LiDAR · Point Cloud</span>
+    <span id="lidar-info" style="color: var(--accent)">—</span>
+  </div>
+  <canvas id="lidar-canvas"></canvas>
+</div>
+
 <script>
   const WS_PORT = 8765;
   const CAM_PORT = 8090;
@@ -237,6 +245,84 @@
     localStorage.setItem('tilt', tiltSlider.value);
     send('T' + tiltSlider.value);
   });
+
+  // ── LiDAR canvas ──────────────────────────────────────────────────────────
+  const lidarCanvas = document.getElementById('lidar-canvas');
+  const lidarInfo = document.getElementById('lidar-info');
+
+  function resizeLidarCanvas() {
+    const size = lidarCanvas.clientWidth;
+    if (lidarCanvas.width !== size) {
+      lidarCanvas.width = size;
+      lidarCanvas.height = size;
+    }
+  }
+
+  function drawLidar(points) {
+    resizeLidarCanvas();
+    const ctx = lidarCanvas.getContext('2d');
+    const W = lidarCanvas.width, H = lidarCanvas.height;
+    const cx = W / 2, cy = H / 2;
+    const maxDist = 6000; // mm — 6 m scale
+    const scale = (W / 2 - 10) / maxDist;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Grid rings
+    ctx.strokeStyle = '#1a1a2a';
+    ctx.lineWidth = 1;
+    [1500, 3000, 4500, 6000].forEach(r => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * scale, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    // Cross hairs
+    ctx.beginPath();
+    ctx.moveTo(cx, 0); ctx.lineTo(cx, H);
+    ctx.moveTo(0, cy); ctx.lineTo(W, cy);
+    ctx.stroke();
+
+    if (!points || points.length === 0) return;
+
+    // Find closest
+    let minDist = Infinity, minPt = null;
+    for (const [angle, dist] of points) {
+      if (dist < minDist) { minDist = dist; minPt = [angle, dist]; }
+    }
+
+    // Draw points
+    ctx.fillStyle = '#00e55c';
+    for (const [angle, dist] of points) {
+      const rad = (angle - 90) * Math.PI / 180;
+      const r = Math.min(dist, maxDist) * scale;
+      const x = cx + r * Math.cos(rad);
+      const y = cy + r * Math.sin(rad);
+      ctx.beginPath();
+      ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Closest point in red
+    if (minPt) {
+      const rad = (minPt[0] - 90) * Math.PI / 180;
+      const r = Math.min(minPt[1], maxDist) * scale;
+      ctx.fillStyle = '#ff4d4d';
+      ctx.beginPath();
+      ctx.arc(cx + r * Math.cos(rad), cy + r * Math.sin(rad), 4, 0, Math.PI * 2);
+      ctx.fill();
+      lidarInfo.textContent = `${points.length} pts · closest ${(minPt[1] / 1000).toFixed(2)} m @ ${minPt[0].toFixed(1)}°`;
+    }
+  }
+
+  function connectLidar() {
+    const lidarWs = new WebSocket(`ws://${location.hostname}:8766`);
+    lidarWs.onmessage = (e) => {
+      try { drawLidar(JSON.parse(e.data)); } catch {}
+    };
+    lidarWs.onclose = () => setTimeout(connectLidar, 3000);
+    lidarWs.onerror = () => { lidarInfo.textContent = 'LiDAR offline'; };
+  }
+  connectLidar();
 
   connect();
 </script>

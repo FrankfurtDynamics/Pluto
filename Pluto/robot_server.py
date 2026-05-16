@@ -10,6 +10,7 @@ import socketserver
 import os
 import subprocess
 import socket
+import lidar
 
 # ─── Shared serial lock ──────────────────────────────────────────────────────
 serial_lock = threading.Lock()
@@ -197,6 +198,32 @@ async def start_ws_server(host='0.0.0.0', port=8765):
         await asyncio.Future()  # run forever
 
 
+# ─── LiDAR WebSocket Server ───────────────────────────────────────────────────
+async def lidar_ws_handler(websocket):
+    print(f"[LIDAR WS] Client connected: {websocket.remote_address}")
+    try:
+        while True:
+            scan = lidar.get_scan()
+            # Send as compact list of [angle, distance] pairs
+            points = [[round(a, 1), round(d, 0)] for _, a, d in scan]
+            await websocket.send(json.dumps(points))
+            await asyncio.sleep(0.1)
+    except websockets.exceptions.ConnectionClosed:
+        pass
+    finally:
+        print("[LIDAR WS] Client disconnected")
+
+
+async def start_lidar_ws_server(host='0.0.0.0', port=8766):
+    async with websockets.serve(lidar_ws_handler, host, port):
+        print(f"[LIDAR WS] Listening on ws://{host}:{port}")
+        await asyncio.Future()
+
+
+def run_lidar_ws_in_thread():
+    asyncio.run(start_lidar_ws_server())
+
+
 def run_ws_in_thread():
     asyncio.run(start_ws_server())
 
@@ -242,6 +269,14 @@ class ArduinoController:
         # WebSocket thread
         ws_thread = threading.Thread(target=run_ws_in_thread, daemon=True)
         ws_thread.start()
+
+        # LiDAR
+        try:
+            lidar.start()
+            lidar_ws_thread = threading.Thread(target=run_lidar_ws_in_thread, daemon=True)
+            lidar_ws_thread.start()
+        except Exception as e:
+            print(f"[WARN] LiDAR unavailable: {e}")
 
         # Camera stream thread
         cam_thread = threading.Thread(target=lambda: run_camera_server(8090), daemon=True)
